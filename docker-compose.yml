@@ -1,0 +1,48 @@
+services:
+  open-meteo-dem:
+    build: .
+    container_name: open-meteo-dem
+    command: sync copernicus_dem90 static
+    restart: "no"
+    volumes:
+      - open-meteo-data:/app/data
+
+  open-meteo-init-sync:
+    build: .
+    container_name: open-meteo-init-sync
+    command: sync ecmwf_ifs025 temperature_2m
+    restart: "no"
+    volumes:
+      - open-meteo-data:/app/data
+
+  open-meteo-sync:
+    build: .
+    container_name: open-meteo-sync
+    command: sync ncep_gfs013 uv_index,uv_index_clear_sky,cloud_cover,direct_radiation,diffuse_radiation,shortwave_radiation --past-days 2 --repeat-interval 30
+    restart: always
+    volumes:
+      - open-meteo-data:/app/data
+
+  open-meteo-api:
+    build: .
+    container_name: open-meteo-api
+    command: serve
+    restart: always
+    depends_on:
+      open-meteo-dem:
+        condition: service_completed_successfully
+      open-meteo-init-sync:
+        condition: service_completed_successfully
+    ports:
+      - "8080:8080"
+    volumes:
+      - open-meteo-data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/v1/forecast?latitude=47.1&longitude=8.4&hourly=temperature_2m || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  open-meteo-data:
