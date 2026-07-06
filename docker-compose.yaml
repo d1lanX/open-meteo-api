@@ -34,7 +34,7 @@ services:
       open-meteo-init-sync:
         condition: service_completed_successfully
     ports:
-      - "8080:8080"
+      - "8181:8080"
     volumes:
       - open-meteo-data:/app/data
     healthcheck:
